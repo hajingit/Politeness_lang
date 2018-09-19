@@ -2,8 +2,10 @@ import os
 import _pickle
 import string
 import nltk
+import spacy
 from itertools import chain
 from collections import defaultdict
+from nltk.stem.wordnet import WordNetLemmatizer
 
 #### PACKAGE IMPORTS ###########################################################
 from features.politeness_strategies import get_politeness_strategy_features
@@ -82,6 +84,34 @@ class PolitenessFeatureVectorizer:
         f.update(dict(map(lambda x: ("BIGRAM_" + str(x), 1 if x in bigrams else 0), self.bigrams)))
         return f
 
+    @staticmethod
+    def preprocess(documents): 
+        nlp = spacy.load('en')
+
+        for document in documents:
+            document['sentences'] = nltk.sent_tokenize(document['text'])
+            document['parses'] = []
+             
+            for s in document['sentences']: 
+                # Spacy inclues punctuation in dependency parsing, which would lead to errors in feature extraction
+                bak = s
+                s = ""
+                for x in bak:
+                    if x in string.punctuation:
+                       s += " "
+                    else:
+                       s += x
+                s = ' '.join(s.split())
+                doc = nlp(s)#unicode(s, "utf-8"))
+                cur = []
+                for sent in doc.sents: 
+                    pos = sent.start
+                    for tok in sent:
+                        ele = "%s(%s-%d, %s-%d)"%(tok.dep_.lower(), tok.head.text, tok.head.i + 1 - pos, tok.text, tok.i + 1 - pos)
+                        cur.append(ele)
+                    document['parses'].append(cur)
+            document['unigrams'], document['bigrams'] = get_unigrams_and_bigrams(document)
+        return documents 
 
     @staticmethod
     def generate_bow_features(documents, min_unigram_count=20, min_bigram_count=20):
@@ -124,6 +154,8 @@ if __name__ == "__main__":
     from test_documents import TEST_DOCUMENTS
 
     vectorizer = PolitenessFeatureVectorizer()
+    #documents = TEST_DOCUMENTS
+    #documents = PolitenessFeatureVectorizer.preprocess(documents)
 
     for doc in TEST_DOCUMENTS:
         f = vectorizer.features(doc)

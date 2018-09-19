@@ -118,7 +118,7 @@ if __name__ == "__main__":
     #     print("\tP(impolite) = %.3f" % np.mean(impolite))
 
    from test_documents import TEST_DOCUMENTS
-
+   TEST_DOCUMENTS = PolitenessFeatureVectorizer.preprocess(TEST_DOCUMENTS)
    for doc in TEST_DOCUMENTS:
 
        probs = score(doc)
