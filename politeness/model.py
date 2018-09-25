@@ -55,6 +55,7 @@ MODEL_FILENAME = os.path.join(os.path.split(__file__)[0], 'politeness-svm.p')
 
 # Load model, initialize vectorizer
 clf = _pickle.load(open(MODEL_FILENAME, 'rb'), encoding='latin1', fix_imports=True)
+print(clf)
 vectorizer = PolitenessFeatureVectorizer()
 
 def score(request):
@@ -117,9 +118,9 @@ if __name__ == "__main__":
     #     print("\tP(polite) = %.3f" % np.mean(polite))
     #     print("\tP(impolite) = %.3f" % np.mean(impolite))
 
-   from test_documents import TEST_DOCUMENTS
-   TEST_DOCUMENTS = PolitenessFeatureVectorizer.preprocess(TEST_DOCUMENTS)
-   for doc in TEST_DOCUMENTS:
+    from test_documents_spacy import TEST_DOCUMENTS
+    TEST_DOCUMENTS = PolitenessFeatureVectorizer.preprocess(TEST_DOCUMENTS)
+    for doc in TEST_DOCUMENTS:
 
        probs = score(doc)
 

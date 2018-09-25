@@ -154,6 +154,8 @@ def check_elems_for_strategy(elems, strategy_fnc):
         try:
             testres = strategy_fnc(elem)
             if testres:
+                print("elem: ", elem)
+                print("!!!", fnc2feature_name(strategy_fnc),"\n")
                 return True
         except Exception as e:
             if VERBOSE_ERRORS:
@@ -209,24 +211,28 @@ def get_politeness_strategy_features(document):
     features = {}
 
     # Parse-based features:
+    print("=== parse-based ===")
     parses = document['parses']
     for fnc in DEPENDENCY_STRATEGIES:
         f = fnc2feature_name(fnc)
         features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
 
     # Text-based features:
+    print("=== text-based ===")
     sentences = map(lambda s: s.lower(), document['sentences'])
     for fnc in TEXT_STRATEGIES:
         f = fnc2feature_name(fnc)
         features[f] = int(check_elems_for_strategy(sentences, fnc))
 
     # Term-based features:
-    terms = map(lambda x: x.lower(), document['unigrams'])
+    print("=== term-based ===")
+    terms = list(map(lambda x: x.lower(), document['unigrams']))
     for fnc in TERM_STRATEGIES:
         f = fnc2feature_name(fnc)
         ## HACK: weird feature names right now
         #f = f.replace("==", "=")
         features[f] = int(check_elems_for_strategy([terms], fnc))
-
+    print("=== features ===")
+    print(features)
     return features
 

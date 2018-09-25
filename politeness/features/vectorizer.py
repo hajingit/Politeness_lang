@@ -18,10 +18,11 @@ def get_unigrams_and_bigrams(document):
     """
     Grabs unigrams and bigrams from document sentences. NLTK does the work.
     """
-    unigram_lists = map(lambda x: nltk.word_tokenize(x), document['sentences'])
-    bigrams = chain(*map(lambda x: nltk.bigrams(x), unigram_lists))
-    unigrams = chain(*unigram_lists)
-
+    unigram_lists = list(map(lambda x: nltk.word_tokenize(x), document['sentences']))
+    #print("list: ", list(unigram_lists))
+    bigrams = list(chain(*list(map(lambda x: nltk.bigrams(x), unigram_lists))))
+    unigrams = list(chain(*list(unigram_lists)))
+    
     return unigrams, bigrams
 
 
@@ -77,6 +78,7 @@ class PolitenessFeatureVectorizer:
         # One binary feature per ngram in self.unigrams and self.bigrams
         unigrams, bigrams = get_unigrams_and_bigrams(document)
         # Add unigrams to document for later use
+        print("!!!!!!", unigrams)
         document['unigrams'] = unigrams
         unigrams, bigrams = set(unigrams), set(bigrams)
         f = {}
