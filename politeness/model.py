@@ -48,7 +48,7 @@ for name, package, expected_v in packages2versions:
                        % (name, expected_v, package.__version__))
 
 #### PACKAGE IMPORTS ###########################################################
-from features.vectorizer import PolitenessFeatureVectorizer
+from .features.vectorizer import PolitenessFeatureVectorizer
 
 # Serialized model filename
 MODEL_FILENAME = os.path.join(os.path.split(__file__)[0], 'politeness-svm.p')
@@ -56,9 +56,9 @@ MODEL_FILENAME = os.path.join(os.path.split(__file__)[0], 'politeness-svm.p')
 # Load model, initialize vectorizer
 clf = _pickle.load(open(MODEL_FILENAME, 'rb'), encoding='latin1', fix_imports=True)
 print(clf)
-vectorizer = PolitenessFeatureVectorizer()
+vectorizer = PolitenessFeatureVectorizer(debug=False)
 
-def score(request):
+def score_and_strategies(request):
   """
   :param request - The request document to score
   :type request - dict with 'sentences' and 'parses' field
@@ -83,14 +83,14 @@ def score(request):
       { 'polite': float, 'impolite': float }
   """
   # Vectorizer returns {feature-name: value} dict
-  features = vectorizer.features(request)
+  features, strategies = vectorizer.features_and_strategies(request)
   fv = [features[f] for f in sorted(features.keys())]
   # Single-row sparse matrix
   X = csr_matrix(np.asarray([fv]))
   probs = clf.predict_proba(X)
   # Massage return format
   probs = {"polite": probs[0][1], "impolite": probs[0][0]}
-  return probs
+  return probs, strategies
 
 
 if __name__ == "__main__":
@@ -118,14 +118,18 @@ if __name__ == "__main__":
   #     print("\tP(polite) = %.3f" % np.mean(polite))
   #     print("\tP(impolite) = %.3f" % np.mean(impolite))
 
-  from test_documents import TEST_DOCUMENTS
-  TEST_DOCUMENTS = PolitenessFeatureVectorizer.preprocess(TEST_DOCUMENTS)
-  for doc in TEST_DOCUMENTS:
+  from .test_documents import TEST_DOCUMENTS, TEST_TEXTS
+  #TEST_DOCUMENTS = PolitenessFeatureVectorizer.preprocess(TEST_DOCUMENTS)
+  '''
+  TEST_TEXTS: [str1, str2, ...]
+  '''
+  for doc in PolitenessFeatureVectorizer.preprocess(TEST_TEXTS):
 
-     probs = score(doc)
+     probs, strategies = score_and_strategies(doc)
 
      print("====================")
      print("Text: ", doc['text'])
      print("\tP(polite) = %.3f" % probs['polite'])
      print("\tP(impolite) = %.3f" % probs['impolite'])
+     print(f"\t{strategies}")
      print("\n")

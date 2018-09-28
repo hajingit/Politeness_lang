@@ -7,6 +7,16 @@ from collections import defaultdict
 # Get the Local Directory to access support files.
 local_dir = os.path.split(__file__)[0]
 
+DEBUG = False
+
+def print_debug(*args, **kwargs):
+  if DEBUG:
+    print(*args, **kwargs)
+
+def set_debug(debug=True):
+  global DEBUG
+  DEBUG = True
+
 #### HEDGES ####################################################################
 ####     Words that are typically used to lessen the impact of an utterance. For
 ####     example, once could could 'lessen the impact' of an utterance during a
@@ -154,13 +164,13 @@ def check_elems_for_strategy(elems, strategy_fnc):
         try:
             testres = strategy_fnc(elem)
             if testres:
-                print("elem: ", elem)
-                print("!!!", fnc2feature_name(strategy_fnc),"\n")
+                print_debug("elem: ", elem)
+                print_debug("!!!", fnc2feature_name(strategy_fnc),"\n")
                 return True
         except Exception as e:
             if VERBOSE_ERRORS:
-                print(strategy_fnc.__name__)
-                print(e, elem)
+                print_debug(strategy_fnc.__name__)
+                print_debug(e, elem)
     return False
 
 
@@ -182,57 +192,82 @@ TERM_STRATEGIES = [has_hedge, has_positive, has_negative]
 fnc2feature_name = lambda f: "feature_politeness_==%s==" % f.__name__.replace(" ","_")
 POLITENESS_FEATURES = map(fnc2feature_name, chain(DEPENDENCY_STRATEGIES, TEXT_STRATEGIES, TERM_STRATEGIES))
 
-def get_politeness_strategy_features(document):
-    """
-    Given a pre-processed request document of the form:
-        {
-            "sentences": ["sent1", "sent2", ...],
-            "parses": [
-                          ["nsubj(dont-5, I-4)", ...],
-                          ["nsubj(dont-5, I-4)", ...],
-                          ...
-                      ],
-            "unigrams": ["a", "b", "c", ...]
-        }
+def get_politeness_strategy_features(document, debug=False):
+  """
+  Given a pre-processed request document of the form:
+    {
+      "sentences": ["sent1", "sent2", ...],
+      "parses": [
+                  ["nsubj(dont-5, I-4)", ...],
+                  ["nsubj(dont-5, I-4)", ...],
+                  ...
+                ],
+      "unigrams": ["a", "b", "c", ...]
+    }
 
-    Return a binary feature dict of the following form, where the value for each
-    feature is a binary value (1 or 0):
-        { "feature_1": 1, "feature_2": 0, "feature_3": 1, ... }
+  Return a binary feature dict of the following form, where the value for each
+  feature is a binary value (1 or 0):
+    { "feature_1": 1, "feature_2": 0, "feature_3": 1, ... }
 
-    This currently only returns binary features; a value of 1 indicates the the
-    strategy is present in the document (0 indicates not present). You could
-    modify this code to count the number occurrences of each strategy (if you
-    are inclined to do so) by changing Line
-    """
-    if not document.get('sentences', False) or not document.get('parses', False):
-        # Nothing here. Return all 0s
-        return {f: 0 for f in POLITENESS_FEATURES}
+  This currently only returns binary features; a value of 1 indicates the the
+  strategy is present in the document (0 indicates not present). You could
+  modify this code to count the number occurrences of each strategy (if you
+  are inclined to do so) by changing Line
+  """
 
-    features = {}
+  global DEBUG
+  DEBUG = debug
 
-    # Parse-based features:
-    print("=== parse-based ===")
-    parses = document['parses']
-    for fnc in DEPENDENCY_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
+  #if not document.get('sentences', False) or not document.get('parses', False):
+  if "sentences" not in document or "parses" not in document:
+    # Nothing here. Return all 0s
+    return {f: 0 for f in POLITENESS_FEATURES}
 
-    # Text-based features:
-    print("=== text-based ===")
-    sentences = map(lambda s: s.lower(), document['sentences'])
-    for fnc in TEXT_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        features[f] = int(check_elems_for_strategy(sentences, fnc))
+  features = {}
+  strategies = []
 
-    # Term-based features:
-    print("=== term-based ===")
-    terms = list(map(lambda x: x.lower(), document['unigrams']))
-    for fnc in TERM_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        ## HACK: weird feature names right now
-        #f = f.replace("==", "=")
-        features[f] = int(check_elems_for_strategy([terms], fnc))
-    print("=== features ===")
-    print(features)
-    return features
+  # Parse-based features:
+  print_debug("=== parse-based ===")
+  parses = document['parses']
+  for fnc in DEPENDENCY_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    #features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
+    #if check_elems_for_strategy(parses, fnc):
+    if check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)):
+      features[f] = 1
+      strategies.append(f)
+    else:
+      features[f] = 0
+
+  # Text-based features:
+  print_debug("=== text-based ===")
+  #sentences = map(lambda s: s.lower(), document['sentences'])
+  sentences = [x.lower() for x in document["sentences"]]
+  for fnc in TEXT_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    #features[f] = int(check_elems_for_strategy(sentences, fnc))
+    if check_elems_for_strategy(sentences, fnc):
+      features[f] = 1
+      strategies.append(f)
+    else:
+      features[f] = 0
+
+  # Term-based features:
+  print_debug("=== term-based ===")
+  #terms = list(map(lambda x: x.lower(), document['unigrams']))
+  terms = [x.lower() for x in document["unigrams"]]
+  for fnc in TERM_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    ## HACK: weird feature names right now
+    #f = f.replace("==", "=")
+    #features[f] = int(check_elems_for_strategy([terms], fnc))
+    if check_elems_for_strategy([terms], fnc):
+      features[f] = 1
+      strategies.append(f)
+    else:
+      features[f] = 0
+
+  print_debug("=== features ===")
+  print_debug(features)
+  return features, strategies
 
