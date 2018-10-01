@@ -9,7 +9,8 @@ def get_scores_strategies_token_indices(msg):
       sent_block.append(
         {
           "tokens": doc['word_tokens'][i],
-          "impolite_index": token_indices[i],
+          "involved_index": token_indices["involved"][i],
+          "impolite_index": token_indices["impolite"][i],
           "polite_index": [],
         }
       )

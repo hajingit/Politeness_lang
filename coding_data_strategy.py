@@ -1,5 +1,5 @@
 from politeness.test_documents import TEST_DOCUMENTS, TEST_TEXTS
-from politeness.api_util import get_scores_and_strategies
+from politeness.api_util import get_scores_strategies_token_indices
 
 #for text in TEST_TEXTS:
 #  print(get_scores_and_strategies(text))
@@ -15,7 +15,7 @@ result = {}
 for i, row in df.iterrows():
   Num = row["Num"]
   Request = row["Request"]
-  ret = get_scores_and_strategies(Request)
+  ret = get_scores_strategies_token_indices(Request)
   en_mean = np.asscalar(np.nanmean(np.array((row["EN1":"EN31"]).values, dtype=np.float32)))
   ch_mean = np.asscalar(np.nanmean(np.array((row["CH1":"CH21"]).values, dtype=np.float32)))
   for s in ret["strategies"]:

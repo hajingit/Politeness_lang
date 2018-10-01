@@ -4,6 +4,10 @@ import re
 from itertools import chain
 from collections import defaultdict
 
+IMPOLITE_STRATEGIES = {"HASNEGATIVE", "Please start",
+                       "Direct question", "Direct start",
+                       "2nd person start", "Factuality"}
+
 # Get the Local Directory to access support files.
 local_dir = os.path.split(__file__)[0]
 
@@ -90,10 +94,10 @@ gratitude.__name__ = "Gratitude"
 apologize = lambda p: getleft(p) in ("sorry","woops","oops") or getright(p) in ("sorry","woops","oops") or remove_numbers(p).lower() in ("dobj(excuse, me)", "nsubj(apologize, i)", "dobj(forgive, me)")
 apologize.__name__ = "Apologizing"
 
-groupidentity = lambda p: len(set([getleft(p), getright(p)]).intersection(["we", "our", "us", "ourselves"])) > 0
+groupidentity = lambda p: len({getleft(p), getright(p)}.intersection(["we", "our", "us", "ourselves"])) > 0
 groupidentity.__name__ = "1st person pl."
 
-firstperson = lambda p: 1 not in [getleftpos(p), getrightpos(p)] and len(set([getleft(p), getright(p)]).intersection(["i", "my", "mine", "myself"])) > 0
+firstperson = lambda p: 1 not in [getleftpos(p), getrightpos(p)] and len({getleft(p), getright(p)}.intersection(["i", "my", "mine", "myself"])) > 0
 firstperson.__name__ = "1st person"
 
 secondperson_start = lambda p: (getleftpos(p) == 1 and getleft(p) in ("you","your","yours","yourself")) or (getrightpos(p) == 1 and getright(p) in ("you","your","yours","yourself"))
@@ -229,7 +233,10 @@ def get_politeness_strategy_features(document, debug=False):
 
   features = {}
   strategies = []
-  token_indices = [set() for _ in range(len(document['sentences']))]
+  token_indices = {
+    "impolite": [set() for _ in range(len(document['sentences']))],
+    "involved": [set() for _ in range(len(document['sentences']))]
+  }
 
   # Parse-based features:
   print_debug("=== parse-based ===")
@@ -245,8 +252,12 @@ def get_politeness_strategy_features(document, debug=False):
       strategies.append(f)
       for i, r in enumerate(ret):
         if r is not None:
-          token_indices[i].update([getleftpos(i) for i in r])
-          token_indices[i].update([getrightpos(i) for i in r])
+          token_indices["involved"][i].update([getleftpos(i) for i in r])
+          token_indices["involved"][i].update([getrightpos(i) for i in r])
+          if fnc.__name__ in IMPOLITE_STRATEGIES:
+            token_indices["impolite"][i].update([getleftpos(i) for i in r])
+            token_indices["impolite"][i].update([getrightpos(i) for i in r])
+
       '''
       if isinstance(ret, (list, tuple, set)):
         token_indices.update([getleftpos(i) for i in ret if i is not None])
@@ -289,7 +300,9 @@ def get_politeness_strategy_features(document, debug=False):
         for term in intersections:
           if term in sentence:
             temp = [j for j, e in enumerate(document["word_tokens"][i]) if e == term]
-            token_indices[i].update(temp)
+            token_indices["involved"][i].update(temp)
+            if fnc.__name__ in IMPOLITE_STRATEGIES:
+              token_indices["involved"][i].update(temp)
         #token_indices[i].update([re.fullmatch(re.escape(term), sentence) for term in intersections if re.match(re.escape(term), sentence)])
       #for i, r in enumerate(ret):
         #token_indices[i].update([re.fullmatch(re.escape(term), document['sentences'][i]) for term in r])
