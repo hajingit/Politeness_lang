@@ -1,15 +1,25 @@
-from .model import score_and_strategies
+from .model import score_strategies_token_indices
 from .features.vectorizer import PolitenessFeatureVectorizer
 
-def get_scores_and_strategies(msg):
+def get_scores_strategies_token_indices(msg):
   for doc in PolitenessFeatureVectorizer.preprocess([msg]):
-    probs, strategies = score_and_strategies(doc)
+    probs, strategies, token_indices = score_strategies_token_indices(doc)
+    sent_block = []
+    for i in range(len(doc['word_tokens'])):
+      sent_block.append(
+        {
+          "tokens": doc['word_tokens'][i],
+          "impolite_index": token_indices[i],
+          "polite_index": [],
+        }
+      )
     return {
       "score_polite"    : probs['polite'],
       "score_impolite"  : probs["impolite"],
-      "strategies"      : strategies
+      "strategies"      : strategies,
+      "sentences": sent_block,
+      #"token_indices"   : token_indices,
     }
-
 
 
 if __name__ == "__main__":

@@ -58,7 +58,7 @@ clf = _pickle.load(open(MODEL_FILENAME, 'rb'), encoding='latin1', fix_imports=Tr
 print(clf)
 vectorizer = PolitenessFeatureVectorizer(debug=False)
 
-def score_and_strategies(request):
+def score_strategies_token_indices(request):
   """
   :param request - The request document to score
   :type request - dict with 'sentences' and 'parses' field
@@ -83,14 +83,14 @@ def score_and_strategies(request):
       { 'polite': float, 'impolite': float }
   """
   # Vectorizer returns {feature-name: value} dict
-  features, strategies = vectorizer.features_and_strategies(request)
+  features, strategies, token_indices = vectorizer.features_strategies_token_indices(request)
   fv = [features[f] for f in sorted(features.keys())]
   # Single-row sparse matrix
   X = csr_matrix(np.asarray([fv]))
   probs = clf.predict_proba(X)
   # Massage return format
   probs = {"polite": probs[0][1], "impolite": probs[0][0]}
-  return probs, strategies
+  return probs, strategies, token_indices
 
 
 if __name__ == "__main__":

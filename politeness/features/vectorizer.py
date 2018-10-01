@@ -38,6 +38,18 @@ def get_unigrams_and_bigrams(document, debug=False):
 
   return unigrams, bigrams
 
+def get_word_tokens_unigrams_bigrams(document, debug=False):
+  """
+  Grabs unigrams and bigrams from document sentences. NLTK does the work.
+  """
+  word_tokens = [nltk.word_tokenize(sentence) for sentence in document["sentences"]]
+  #unigram_lists = list(map(lambda x: nltk.word_tokenize(x), document["sentences"]))
+  #print_debug("list: ", list(unigram_lists))
+  bigrams = list(chain(*list(map(lambda x: nltk.bigrams(x), word_tokens))))
+  unigrams = list(chain(*list(word_tokens)))
+
+  return word_tokens, unigrams, bigrams
+
 
 class PolitenessFeatureVectorizer:
   """
@@ -69,11 +81,15 @@ class PolitenessFeatureVectorizer:
     self.bigrams = _pickle.load(open(self.BIGRAMS_FILENAME, 'rb'),
                                 encoding='latin1', fix_imports=True)
 
-  def features_and_strategies(self, document):
+  def features_strategies_token_indices(self, document):
     return self.__features(document)
 
+  def features_and_strategies(self, document):
+    features, strategies, _ = self.__features(document)
+    return features, strategies
+
   def features(self, document):
-    ret, _ = self.__features(document)
+    ret, _, _ = self.__features(document)
     return ret
 
   def __features(self, document):
@@ -93,15 +109,17 @@ class PolitenessFeatureVectorizer:
     # Add unigram, bigram features:
     feature_dict.update(self._get_term_features(document))
     # Add politeness strategy features:
-    polite_features, polite_strategies = get_politeness_strategy_features(document, debug=DEBUG)
+    polite_features, polite_strategies, token_indices = get_politeness_strategy_features(document, debug=DEBUG)
     feature_dict.update(polite_features)
-    return feature_dict, polite_strategies
+    return feature_dict, polite_strategies, token_indices
 
   def _get_term_features(self, document):
     # One binary feature per ngram in self.unigrams and self.bigrams
-    unigrams, bigrams = get_unigrams_and_bigrams(document)
+    #unigrams, bigrams = get_unigrams_and_bigrams(document)
+    word_tokens, unigrams, bigrams = get_word_tokens_unigrams_bigrams(document)
     # Add unigrams to document for later use
     print_debug("!!!!!!", unigrams)
+    document['word_tokens'] = word_tokens
     document['unigrams'] = unigrams
     unigrams, bigrams = set(unigrams), set(bigrams)
     f = {}
@@ -138,7 +156,8 @@ class PolitenessFeatureVectorizer:
             ele = "%s(%s-%d, %s-%d)"%(tok.dep_.lower(), tok.head.text, tok.head.i + 1 - pos, tok.text, tok.i + 1 - pos)
             cur.append(ele)
           document['parses'].append(cur)
-      document['unigrams'], document['bigrams'] = get_unigrams_and_bigrams(document)
+
+      document["word_tokens"], document['unigrams'], document['bigrams'] = get_word_tokens_unigrams_bigrams(document)
     return documents
 
   @staticmethod

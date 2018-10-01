@@ -142,36 +142,40 @@ indicative = lambda s: "can you" in s or "will you" in s
 indicative.__name__ = "INDICATIVE"
 
 ####    Based on token lists.
-has_hedge = lambda l: len(set(l).intersection(hedges)) > 0
+has_hedge = lambda l: set(l).intersection(hedges) if len(set(l).intersection(hedges)) > 0 else None
 has_hedge.__name__ = "HASHEDGE"
 
-has_positive = lambda l: len(positive_words.intersection(l)) > 0
+has_positive = lambda l: positive_words.intersection(l) if len(positive_words.intersection(l)) > 0 else None
 has_positive.__name__ = "HASPOSITIVE"
 
-has_negative = lambda l: len(negative_words.intersection(l)) > 0
+has_negative = lambda l: negative_words.intersection(l) if len(negative_words.intersection(l)) > 0 else None
 has_negative.__name__ = "HASNEGATIVE"
 
 #### EVALUATE STRATEGY FUNCTIONS ###############################################
 VERBOSE_ERRORS = False
 
 def check_elems_for_strategy(elems, strategy_fnc):
-    """
-    Given a strategy and a list of elements, return True if the strategy is
-    present in at least one of the elements. Return False if the strategy is
-    not present in any of the elements.
-    """
-    for elem in elems:
-        try:
-            testres = strategy_fnc(elem)
-            if testres:
-                print_debug("elem: ", elem)
-                print_debug("!!!", fnc2feature_name(strategy_fnc),"\n")
-                return True
-        except Exception as e:
-            if VERBOSE_ERRORS:
-                print_debug(strategy_fnc.__name__)
-                print_debug(e, elem)
-    return False
+  """
+  Given a strategy and a list of elements, return True if the strategy is
+  present in at least one of the elements. Return False if the strategy is
+  not present in any of the elements.
+  """
+  flag = False
+  ret = []
+  for i, elem in enumerate(elems):
+    try:
+      testres = strategy_fnc(elem)
+      if testres:
+        print_debug("elem: ", elem)
+        print_debug("!!!", fnc2feature_name(strategy_fnc),"\n")
+        ret.append(elem)
+        flag = True
+    except Exception as e:
+      if VERBOSE_ERRORS:
+        print_debug(strategy_fnc.__name__)
+        print_debug(e, elem)
+
+  return ret if flag else None
 
 
 #### FEATURE EXTRACTION ########################################################
@@ -225,6 +229,7 @@ def get_politeness_strategy_features(document, debug=False):
 
   features = {}
   strategies = []
+  token_indices = [set() for _ in range(len(document['sentences']))]
 
   # Parse-based features:
   print_debug("=== parse-based ===")
@@ -233,9 +238,22 @@ def get_politeness_strategy_features(document, debug=False):
     f = fnc2feature_name(fnc)
     #features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
     #if check_elems_for_strategy(parses, fnc):
-    if check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)):
+    #ret = check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc))
+    ret = [check_elems_for_strategy(p, fnc) for p in parses]
+    if any([r is not None for r in ret]):
       features[f] = 1
       strategies.append(f)
+      for i, r in enumerate(ret):
+        if r is not None:
+          token_indices[i].update([getleftpos(i) for i in r])
+          token_indices[i].update([getrightpos(i) for i in r])
+      '''
+      if isinstance(ret, (list, tuple, set)):
+        token_indices.update([getleftpos(i) for i in ret if i is not None])
+        token_indices.update([getrightpos(i) for i in ret if i is not None])
+      else:
+        token_indices.add(ret)
+      '''
     else:
       features[f] = 0
 
@@ -246,7 +264,8 @@ def get_politeness_strategy_features(document, debug=False):
   for fnc in TEXT_STRATEGIES:
     f = fnc2feature_name(fnc)
     #features[f] = int(check_elems_for_strategy(sentences, fnc))
-    if check_elems_for_strategy(sentences, fnc):
+    ret = check_elems_for_strategy(sentences, fnc)
+    if ret is not None:
       features[f] = 1
       strategies.append(f)
     else:
@@ -261,13 +280,29 @@ def get_politeness_strategy_features(document, debug=False):
     ## HACK: weird feature names right now
     #f = f.replace("==", "=")
     #features[f] = int(check_elems_for_strategy([terms], fnc))
-    if check_elems_for_strategy([terms], fnc):
+    ret = check_elems_for_strategy([terms], fnc)
+    if ret is not None:
       features[f] = 1
       strategies.append(f)
+      intersections = set(ret[0])
+      for i, sentence in enumerate(document["sentences"]):
+        for term in intersections:
+          if term in sentence:
+            temp = [j for j, e in enumerate(document["word_tokens"][i]) if e == term]
+            token_indices[i].update(temp)
+        #token_indices[i].update([re.fullmatch(re.escape(term), sentence) for term in intersections if re.match(re.escape(term), sentence)])
+      #for i, r in enumerate(ret):
+        #token_indices[i].update([re.fullmatch(re.escape(term), document['sentences'][i]) for term in r])
+      '''
+      if isinstance(ret, (list, tuple, set)):
+        token_indices.update(ret)
+      else:
+        token_indices.add(ret)
+      '''
     else:
       features[f] = 0
 
   print_debug("=== features ===")
   print_debug(features)
-  return features, strategies
+  return features, strategies, token_indices
 
