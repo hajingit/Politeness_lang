@@ -4,8 +4,22 @@ import re
 from itertools import chain
 from collections import defaultdict
 
+IMPOLITE_STRATEGIES = {"HASNEGATIVE", "Please start",
+                       "Direct question", "Direct start",
+                       "2nd person start", "Factuality"}
+
 # Get the Local Directory to access support files.
 local_dir = os.path.split(__file__)[0]
+
+DEBUG = False
+
+def print_debug(*args, **kwargs):
+  if DEBUG:
+    print(*args, **kwargs)
+
+def set_debug(debug=True):
+  global DEBUG
+  DEBUG = True
 
 #### HEDGES ####################################################################
 ####     Words that are typically used to lessen the impact of an utterance. For
@@ -80,10 +94,10 @@ gratitude.__name__ = "Gratitude"
 apologize = lambda p: getleft(p) in ("sorry","woops","oops") or getright(p) in ("sorry","woops","oops") or remove_numbers(p).lower() in ("dobj(excuse, me)", "nsubj(apologize, i)", "dobj(forgive, me)")
 apologize.__name__ = "Apologizing"
 
-groupidentity = lambda p: len(set([getleft(p), getright(p)]).intersection(["we", "our", "us", "ourselves"])) > 0
+groupidentity = lambda p: len({getleft(p), getright(p)}.intersection(["we", "our", "us", "ourselves"])) > 0
 groupidentity.__name__ = "1st person pl."
 
-firstperson = lambda p: 1 not in [getleftpos(p), getrightpos(p)] and len(set([getleft(p), getright(p)]).intersection(["i", "my", "mine", "myself"])) > 0
+firstperson = lambda p: 1 not in [getleftpos(p), getrightpos(p)] and len({getleft(p), getright(p)}.intersection(["i", "my", "mine", "myself"])) > 0
 firstperson.__name__ = "1st person"
 
 secondperson_start = lambda p: (getleftpos(p) == 1 and getleft(p) in ("you","your","yours","yourself")) or (getrightpos(p) == 1 and getright(p) in ("you","your","yours","yourself"))
@@ -132,36 +146,40 @@ indicative = lambda s: "can you" in s or "will you" in s
 indicative.__name__ = "INDICATIVE"
 
 ####    Based on token lists.
-has_hedge = lambda l: len(set(l).intersection(hedges)) > 0
+has_hedge = lambda l: set(l).intersection(hedges) if len(set(l).intersection(hedges)) > 0 else None
 has_hedge.__name__ = "HASHEDGE"
 
-has_positive = lambda l: len(positive_words.intersection(l)) > 0
+has_positive = lambda l: positive_words.intersection(l) if len(positive_words.intersection(l)) > 0 else None
 has_positive.__name__ = "HASPOSITIVE"
 
-has_negative = lambda l: len(negative_words.intersection(l)) > 0
+has_negative = lambda l: negative_words.intersection(l) if len(negative_words.intersection(l)) > 0 else None
 has_negative.__name__ = "HASNEGATIVE"
 
 #### EVALUATE STRATEGY FUNCTIONS ###############################################
 VERBOSE_ERRORS = False
 
 def check_elems_for_strategy(elems, strategy_fnc):
-    """
-    Given a strategy and a list of elements, return True if the strategy is
-    present in at least one of the elements. Return False if the strategy is
-    not present in any of the elements.
-    """
-    for elem in elems:
-        try:
-            testres = strategy_fnc(elem)
-            if testres:
-                print("elem: ", elem)
-                print("!!!", fnc2feature_name(strategy_fnc),"\n")
-                return True
-        except Exception as e:
-            if VERBOSE_ERRORS:
-                print(strategy_fnc.__name__)
-                print(e, elem)
-    return False
+  """
+  Given a strategy and a list of elements, return True if the strategy is
+  present in at least one of the elements. Return False if the strategy is
+  not present in any of the elements.
+  """
+  flag = False
+  ret = []
+  for i, elem in enumerate(elems):
+    try:
+      testres = strategy_fnc(elem)
+      if testres:
+        print_debug("elem: ", elem)
+        print_debug("!!!", fnc2feature_name(strategy_fnc),"\n")
+        ret.append(elem)
+        flag = True
+    except Exception as e:
+      if VERBOSE_ERRORS:
+        print_debug(strategy_fnc.__name__)
+        print_debug(e, elem)
+
+  return ret if flag else None
 
 
 #### FEATURE EXTRACTION ########################################################
@@ -182,57 +200,122 @@ TERM_STRATEGIES = [has_hedge, has_positive, has_negative]
 fnc2feature_name = lambda f: "feature_politeness_==%s==" % f.__name__.replace(" ","_")
 POLITENESS_FEATURES = map(fnc2feature_name, chain(DEPENDENCY_STRATEGIES, TEXT_STRATEGIES, TERM_STRATEGIES))
 
-def get_politeness_strategy_features(document):
-    """
-    Given a pre-processed request document of the form:
-        {
-            "sentences": ["sent1", "sent2", ...],
-            "parses": [
-                          ["nsubj(dont-5, I-4)", ...],
-                          ["nsubj(dont-5, I-4)", ...],
-                          ...
-                      ],
-            "unigrams": ["a", "b", "c", ...]
-        }
+def get_politeness_strategy_features(document, debug=False):
+  """
+  Given a pre-processed request document of the form:
+    {
+      "sentences": ["sent1", "sent2", ...],
+      "parses": [
+                  ["nsubj(dont-5, I-4)", ...],
+                  ["nsubj(dont-5, I-4)", ...],
+                  ...
+                ],
+      "unigrams": ["a", "b", "c", ...]
+    }
 
-    Return a binary feature dict of the following form, where the value for each
-    feature is a binary value (1 or 0):
-        { "feature_1": 1, "feature_2": 0, "feature_3": 1, ... }
+  Return a binary feature dict of the following form, where the value for each
+  feature is a binary value (1 or 0):
+    { "feature_1": 1, "feature_2": 0, "feature_3": 1, ... }
 
-    This currently only returns binary features; a value of 1 indicates the the
-    strategy is present in the document (0 indicates not present). You could
-    modify this code to count the number occurrences of each strategy (if you
-    are inclined to do so) by changing Line
-    """
-    if not document.get('sentences', False) or not document.get('parses', False):
-        # Nothing here. Return all 0s
-        return {f: 0 for f in POLITENESS_FEATURES}
+  This currently only returns binary features; a value of 1 indicates the the
+  strategy is present in the document (0 indicates not present). You could
+  modify this code to count the number occurrences of each strategy (if you
+  are inclined to do so) by changing Line
+  """
 
-    features = {}
+  global DEBUG
+  DEBUG = debug
 
-    # Parse-based features:
-    print("=== parse-based ===")
-    parses = document['parses']
-    for fnc in DEPENDENCY_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
+  #if not document.get('sentences', False) or not document.get('parses', False):
+  if "sentences" not in document or "parses" not in document:
+    # Nothing here. Return all 0s
+    return {f: 0 for f in POLITENESS_FEATURES}
 
-    # Text-based features:
-    print("=== text-based ===")
-    sentences = map(lambda s: s.lower(), document['sentences'])
-    for fnc in TEXT_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        features[f] = int(check_elems_for_strategy(sentences, fnc))
+  features = {}
+  strategies = []
+  token_indices = {
+    "impolite": [set() for _ in range(len(document['sentences']))],
+    "involved": [set() for _ in range(len(document['sentences']))]
+  }
 
-    # Term-based features:
-    print("=== term-based ===")
-    terms = list(map(lambda x: x.lower(), document['unigrams']))
-    for fnc in TERM_STRATEGIES:
-        f = fnc2feature_name(fnc)
-        ## HACK: weird feature names right now
-        #f = f.replace("==", "=")
-        features[f] = int(check_elems_for_strategy([terms], fnc))
-    print("=== features ===")
-    print(features)
-    return features
+  # Parse-based features:
+  print_debug("=== parse-based ===")
+  parses = document['parses']
+  for fnc in DEPENDENCY_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    #features[f] = int(check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc)))
+    #if check_elems_for_strategy(parses, fnc):
+    #ret = check_elems_for_strategy(parses, lambda p: check_elems_for_strategy(p, fnc))
+    ret = [check_elems_for_strategy(p, fnc) for p in parses]
+    if any([r is not None for r in ret]):
+      features[f] = 1
+      strategies.append(f)
+      for i, r in enumerate(ret):
+        if r is not None:
+          token_indices["involved"][i].update([getleftpos(i) for i in r])
+          token_indices["involved"][i].update([getrightpos(i) for i in r])
+          if fnc.__name__ in IMPOLITE_STRATEGIES:
+            token_indices["impolite"][i].update([getleftpos(i) for i in r])
+            token_indices["impolite"][i].update([getrightpos(i) for i in r])
+
+      '''
+      if isinstance(ret, (list, tuple, set)):
+        token_indices.update([getleftpos(i) for i in ret if i is not None])
+        token_indices.update([getrightpos(i) for i in ret if i is not None])
+      else:
+        token_indices.add(ret)
+      '''
+    else:
+      features[f] = 0
+
+  # Text-based features:
+  print_debug("=== text-based ===")
+  #sentences = map(lambda s: s.lower(), document['sentences'])
+  sentences = [x.lower() for x in document["sentences"]]
+  for fnc in TEXT_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    #features[f] = int(check_elems_for_strategy(sentences, fnc))
+    ret = check_elems_for_strategy(sentences, fnc)
+    if ret is not None:
+      features[f] = 1
+      strategies.append(f)
+    else:
+      features[f] = 0
+
+  # Term-based features:
+  print_debug("=== term-based ===")
+  #terms = list(map(lambda x: x.lower(), document['unigrams']))
+  terms = [x.lower() for x in document["unigrams"]]
+  for fnc in TERM_STRATEGIES:
+    f = fnc2feature_name(fnc)
+    ## HACK: weird feature names right now
+    #f = f.replace("==", "=")
+    #features[f] = int(check_elems_for_strategy([terms], fnc))
+    ret = check_elems_for_strategy([terms], fnc)
+    if ret is not None:
+      features[f] = 1
+      strategies.append(f)
+      intersections = set(ret[0])
+      for i, sentence in enumerate(document["sentences"]):
+        for term in intersections:
+          if term in sentence:
+            temp = [j for j, e in enumerate(document["word_tokens"][i]) if e == term]
+            token_indices["involved"][i].update(temp)
+            if fnc.__name__ in IMPOLITE_STRATEGIES:
+              token_indices["involved"][i].update(temp)
+        #token_indices[i].update([re.fullmatch(re.escape(term), sentence) for term in intersections if re.match(re.escape(term), sentence)])
+      #for i, r in enumerate(ret):
+        #token_indices[i].update([re.fullmatch(re.escape(term), document['sentences'][i]) for term in r])
+      '''
+      if isinstance(ret, (list, tuple, set)):
+        token_indices.update(ret)
+      else:
+        token_indices.add(ret)
+      '''
+    else:
+      features[f] = 0
+
+  print_debug("=== features ===")
+  print_debug(features)
+  return features, strategies, token_indices
 

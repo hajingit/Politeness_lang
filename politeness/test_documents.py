@@ -88,6 +88,7 @@ TEST_DOCUMENTS = [
 
 
 
+TEST_TEXTS = [d["text"] for d in TEST_DOCUMENTS]
 
 
 
