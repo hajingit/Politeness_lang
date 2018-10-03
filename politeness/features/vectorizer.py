@@ -150,12 +150,13 @@ class PolitenessFeatureVectorizer:
         s = ' '.join(s.split())
         doc = nlp(s)#unicode(s, "utf-8"))
         cur = []
+        #for sent in doc.sents:
         for sent in doc.sents:
           pos = sent.start
           for tok in sent:
             ele = "%s(%s-%d, %s-%d)"%(tok.dep_.lower(), tok.head.text, tok.head.i + 1 - pos, tok.text, tok.i + 1 - pos)
             cur.append(ele)
-          document['parses'].append(cur)
+        document['parses'].append(cur)
 
       document["word_tokens"], document['unigrams'], document['bigrams'] = get_word_tokens_unigrams_bigrams(document)
     return documents

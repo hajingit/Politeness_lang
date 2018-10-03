@@ -249,14 +249,19 @@ def get_politeness_strategy_features(document, debug=False):
     ret = [check_elems_for_strategy(p, fnc) for p in parses]
     if any([r is not None for r in ret]):
       features[f] = 1
-      strategies.append(f)
+      strategies.append(fnc.__name__)
       for i, r in enumerate(ret):
         if r is not None:
-          token_indices["involved"][i].update([getleftpos(i) for i in r])
-          token_indices["involved"][i].update([getrightpos(i) for i in r])
+          # if i >= len(token_indices["involved"]):
+          #   print(i, len(token_indices["involved"]))
+          #   print(document["sentences"])
+          #   print(document["parses"])
+          #   input()
+          token_indices["involved"][i].update([getleftpos(j) for j in r])
+          token_indices["involved"][i].update([getrightpos(j) for j in r])
           if fnc.__name__ in IMPOLITE_STRATEGIES:
-            token_indices["impolite"][i].update([getleftpos(i) for i in r])
-            token_indices["impolite"][i].update([getrightpos(i) for i in r])
+            token_indices["impolite"][i].update([getleftpos(j) for j in r])
+            token_indices["impolite"][i].update([getrightpos(j) for j in r])
 
       '''
       if isinstance(ret, (list, tuple, set)):
@@ -278,7 +283,7 @@ def get_politeness_strategy_features(document, debug=False):
     ret = check_elems_for_strategy(sentences, fnc)
     if ret is not None:
       features[f] = 1
-      strategies.append(f)
+      strategies.append(fnc.__name__)
     else:
       features[f] = 0
 
@@ -294,7 +299,7 @@ def get_politeness_strategy_features(document, debug=False):
     ret = check_elems_for_strategy([terms], fnc)
     if ret is not None:
       features[f] = 1
-      strategies.append(f)
+      strategies.append(fnc.__name__)
       intersections = set(ret[0])
       for i, sentence in enumerate(document["sentences"]):
         for term in intersections:
