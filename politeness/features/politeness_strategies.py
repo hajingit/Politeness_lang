@@ -257,11 +257,11 @@ def get_politeness_strategy_features(document, debug=False):
           #   print(document["sentences"])
           #   print(document["parses"])
           #   input()
-          token_indices["involved"][i].update([getleftpos(j) for j in r])
-          token_indices["involved"][i].update([getrightpos(j) for j in r])
+          token_indices["involved"][i].update([getleftpos(j)-1 for j in r])
+          token_indices["involved"][i].update([getrightpos(j)-1 for j in r])
           if fnc.__name__ in IMPOLITE_STRATEGIES:
-            token_indices["impolite"][i].update([getleftpos(j) for j in r])
-            token_indices["impolite"][i].update([getrightpos(j) for j in r])
+            token_indices["impolite"][i].update([getleftpos(j)-1 for j in r])
+            token_indices["impolite"][i].update([getrightpos(j)-1 for j in r])
 
       '''
       if isinstance(ret, (list, tuple, set)):
