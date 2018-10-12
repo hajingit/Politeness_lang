@@ -6,5 +6,5 @@ import pprint
 # for text in TEST_TEXTS:
 #   ret = get_scores_strategies_token_indices("")
 #   pprint.pprint(ret)
-ret = get_scores_strategies_token_indices("why wasn't it moved")
+ret = get_scores_strategies_token_indices("What are you? I am fine.")
 pprint.pprint(ret)
