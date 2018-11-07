@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
 import random
+import numpy as np
 
 def _read(feature_path="train_features.pkl", label_path="train.csv"):
   with open(feature_path, "rb") as fin:
