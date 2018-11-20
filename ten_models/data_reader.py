@@ -45,4 +45,7 @@ def k_fold_cross_val(feature_path="train_features.pkl", label_path="train.csv", 
     for i in range(k):
         test_ind = set(all_ind[i::k])
         train_ind = set(all_ind) - test_ind
-        yield arr[list(train_ind)], arr[list(test_ind)]
+        test_ind = list(test_ind)
+        train_ind = list(train_ind)
+        #print(test_ind[:10])
+        yield arr[train_ind], arr[test_ind]
