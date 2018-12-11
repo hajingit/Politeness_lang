@@ -2,6 +2,22 @@
 
 ## 1. Modified Politeness API for backend
 
+(the version used is in repo `Politeness_merge`)
+
+#### package used:
+[`spaCy`](https://spacy.io/)
+other package information please refer to [the original politeness API](https://www.cs.cornell.edu/~cristian/Politeness.html)
+
+#### file involved  
+
+`politeness/*`
+
+#### usage:
+
+Usage is written in `main.py`
+
+---
+
 ## 2. Find Feature
 
 #### package used:
@@ -19,7 +35,32 @@
 
 #### function and usage:
 
-- `add_feature`
+1.  `add_feature`
+
+    input:
+    - `feature_name`: a string of feature name
+    - `feature_func`: a callable which takes a string (text) and return a feature value
+    - `df`: DataFrame of data
+    - `columns`: columns in `df` to calculate correlation and p value
+    - `target_col_name`: col name of request, default to `"Request"`
+
+    output:
+    - `df_corr`: DataFrame of correlation
+    - `df_pval`: DataFrame of p value
+
+2.  `draw_heatmap`
+
+    input:
+    - `corrs`: DataFrame that contains correlations
+    - `vmin`, `vmax`: min/max value that have different color (value greater than vmax or less than vmin will have same colors)
+    - `center`: center value that has black color
+    - `label`: column name in `corrs` that stores value to draw, default as `corrs`
+
+3.  `print_dfs`
+
+    input:
+    - `dfs`: DataFrames to print
+
 
 
 ---
