@@ -89,7 +89,5 @@ if __name__ == "__main__":
     #from politeness.test_documents import TEST_DOCUMENTS
     codings = pd.read_csv('Pol600withLabel.csv', index_col=0, parse_dates=True)
     docs = codings['Request'].tolist()
-    print(len(docs))
-    exit(1)
     documents = PolitenessFeatureVectorizer.preprocess(docs)
     train_svm(documents, ntesting=1)
