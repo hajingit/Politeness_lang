@@ -170,5 +170,47 @@ Usage is written in `main.py`
 
 
 ### 3.3 Other ML approaches
-@ Chris
 
+#### packages used:
+
+[`scikt-learn`](https://scikit-learn.org/)  
+[`xgboost`](https://xgboost.readthedocs.io/en/latest/)  
+[`pandas`](https://pandas.pydata.org/)
+
+#### file involved:
+
+`ten_models/data_reader.py` (mentioned above)  
+`ten_models/models.ipynb`
+`ten_models/models_ignoring.ipynb`
+
+#### model:
+
+`train_model`:
+- parameters: 
+  - `classifier`: the classifier used for training and inference.
+  - `train_x`: {array-like, sparse matrix}, shape (n_samples, n_features)
+                Training vector, where n_samples is the number of samples and 
+                n_features is the number of features.
+  - `train_y`: array-like, shape (n_samples,)
+                Target vector relative to train_x.
+  - `valid_x`: {array-like, sparse matrix}, shape (n_samples, n_features)
+                validating vector, where n_samples is the number of samples and 
+                n_features is the number of features.
+  - `valid_y`: array-like, shape (n_samples,)
+                Target vector relative to valid_x.
+
+- returns:
+  - `accuracy`: the accuracy of trained model performs on valid data.
+  - `classification report`: precision, recall and f1-score on valid data.
+  - `trained classifier`: the classifier trained on training data.
+
+`test_model`:
+- parameters: 
+  - `classifier_ch`: the classifier trained on Chinese speaker scoring input data.
+  - `classifier_en`: the classifier trained on English speaker scoring input data.
+  - `test_x`: {array-like, sparse matrix}, shape (n_samples, n_features)
+                test vector, where n_samples is the number of samples and 
+                n_features is the number of features.
+
+- returns:
+  - `difference`: the index of data point which ch_model and en_model predicted differently on test data.
