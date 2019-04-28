@@ -1,0 +1,62 @@
+Z_scores
+
+Vader Sentiment:
+
+Chinese precision:  0.92  recall:  0.92  f-score:  0.92  accuracy:  0.92
+English precision:  0.4  recall:  0.4  f-score:  0.4000000000000001  accuracy:  0.4
+Flesch reading
+
+Chinese precision:  0.78  recall:  0.78  f-score:  0.78  accuracy:  0.78
+English precision:  0.24  recall:  0.24  f-score:  0.24  accuracy:  0.24
+
+
+dale_chall_readability_score
+Chinese precision:  1.0  recall:  1.0  f-score:  1.0  accuracy:  1.0
+English precision:  0.38  recall:  0.38  f-score:  0.38  accuracy:  0.38
+gunning_fog
+Chinese precision:  1.0  recall:  1.0  f-score:  1.0  accuracy:  1.0
+English precision:  0.46  recall:  0.46  f-score:  0.46  accuracy:  0.46
+
+
+
+smog_index
+Chinese precision:  1.0  recall:  1.0  f-score:  1.0  accuracy:  1.0
+English precision:  0.36  recall:  0.36  f-score:  0.36  accuracy:  0.36
+
+
+
+text_standard
+Chinese precision:  1.0  recall:  1.0  f-score:  1.0  accuracy:  1.0
+English precision:  0.5  recall:  0.5  f-score:  0.5  accuracy:  0.5
+
+
+
+Perspective API scores:
+
+Chinese precision:  0.8  recall:  0.8  f-score:  0.8000000000000002  accuracy:  0.8
+English precision:  0.48  recall:  0.48  f-score:  0.48  accuracy:  0.48
+
+
+
+POS tags feature:
+
+Chinese precision:  0.74  recall:  0.74  f-score:  0.74  accuracy:  0.74
+
+
+English precision:  0.3  recall:  0.3  f-score:  0.3  accuracy:  0.3
+
+
+
+Politeness Strategies:
+
+Chinese precision:  0.82  recall:  0.82  f-score:  0.82  accuracy:  0.82
+
+English precision:  0.54  recall:  0.54 f-score:  0.54  accuracy:  0.54
+
+
+
+Politeness Scores:
+
+Chinese precision:  0.98  recall:  0.98  f-score:  0.98  accuracy:  0.98
+English precision:  0.46  recall:  0.46  f-score:  0.46  accuracy:  0.46
+
